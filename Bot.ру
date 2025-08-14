@@ -1,0 +1,43 @@
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+
+TOKEN = 'ВАШ_ТОКЕН_ОТ_BOTFATHER'
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher(bot)
+
+user_data = {}
+
+@dp.message_handler(commands=['start'])
+async def start(message: types.Message):
+    await message.answer("Привет! Я помогу посчитать твою калорийность.\nСначала введи свой вес (кг):")
+    user_data[message.from_user.id] = {}
+
+@dp.message_handler()
+async def get_data(message: types.Message):
+    user_id = message.from_user.id
+    text = message.text
+
+    if 'weight' not in user_data[user_id]:
+        user_data[user_id]['weight'] = float(text.replace(',', '.'))
+        await message.answer("Отлично! Теперь введи свой рост (см):")
+    elif 'height' not in user_data[user_id]:
+        user_data[user_id]['height'] = float(text.replace(',', '.'))
+        await message.answer("Супер! Введи свой возраст:")
+    elif 'age' not in user_data[user_id]:
+        user_data[user_id]['age'] = int(text)
+        await message.answer("Теперь введи уровень активности:\n1 - сидячий\n2 - средний\n3 - активный")
+    elif 'activity' not in user_data[user_id]:
+        activity_map = {'1': 1.2, '2': 1.55, '3': 1.9}
+        user_data[user_id]['activity'] = activity_map.get(text, 1.2)
+
+        w = user_data[user_id]['weight']
+        h = user_data[user_id]['height']
+        a = user_data[user_id]['age']
+        act = user_data[user_id]['activity']
+
+        bmr = 10*w + 6.25*h - 5*a + 5  # для мужчин (-161 для женщин)
+        calories = int(bmr * act)
+
+        await message.answer(f"Твоя ориентировочная калорийность: {calories} ккал/день")
+        user_data.pop(user_id)
